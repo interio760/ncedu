@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: Spring Boot Ng
+
+server:
+  port: 80
