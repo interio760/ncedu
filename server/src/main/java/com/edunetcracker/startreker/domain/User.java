@@ -5,6 +5,7 @@ import com.edunetcracker.startreker.dao.annotations.PrimaryKey;
 import com.edunetcracker.startreker.dao.annotations.Table;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@NoArgsConstructor
 @Table("usr")
 public class User implements UserDetails {
 
@@ -30,6 +32,11 @@ public class User implements UserDetails {
     private String userPassword;
 
     private List<Role> userRoles = new ArrayList<>();
+
+    public User(String userName, String userPassword) {
+        this.userName = userName;
+        this.userPassword = userPassword;
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

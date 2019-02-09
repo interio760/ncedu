@@ -2,6 +2,7 @@ package com.edunetcracker.startreker.dao;
 
 import com.edunetcracker.startreker.domain.Role;
 import com.edunetcracker.startreker.domain.User;
+import com.edunetcracker.startreker.domain.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,7 @@ import java.util.stream.Collectors;
 public class UserDAO extends CrudDAO<User> {
 
     private RoleDAO roleDAO;
+    private final String findByUsernameSql = "SELECT * FROM usr WHERE user_name = ?";
     private final String findAllRolesSql = "SELECT role_id FROM assigned_role WHERE user_id = ?";
     private final String removeAllUserRolesSql = "DELETE FROM assigned_role WHERE user_id = ?";
     private final String addRoleSql = "INSERT INTO assigned_role (user_id, role_id) VALUES (?, ?)";
@@ -30,6 +32,25 @@ public class UserDAO extends CrudDAO<User> {
         if(userOpt.isPresent()){
             User user = userOpt.get();
             List<Long> rows = getJdbcTemplate().queryForList(findAllRolesSql, Long.class, id);
+            List<Role> roles = new ArrayList<>();
+            for(Long role_id : rows){
+                roles.add(roleDAO.find(role_id).orElse(null));
+            }
+            user.setUserRoles(roles);
+            return Optional.of(user);
+        }
+        return Optional.empty();
+    }
+
+    public Optional<User> findByUsername(String userName){
+        User user = null;
+        try{
+            user = (User) getJdbcTemplate().queryForObject(findByUsernameSql, new Object[]{userName}, new UserMapper());
+        }catch (ClassCastException e){
+            return Optional.empty();
+        }
+        if(user != null){
+            List<Long> rows = getJdbcTemplate().queryForList(findAllRolesSql, Long.class, user.getUserId());
             List<Role> roles = new ArrayList<>();
             for(Long role_id : rows){
                 roles.add(roleDAO.find(role_id).orElse(null));
