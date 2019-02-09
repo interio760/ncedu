@@ -1,4 +1,4 @@
-package com.edunetcracker.startreker.domain.annotations;
+package com.edunetcracker.startreker.dao.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

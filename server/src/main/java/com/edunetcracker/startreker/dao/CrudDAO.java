@@ -1,21 +1,29 @@
 package com.edunetcracker.startreker.dao;
 
-import com.edunetcracker.startreker.domain.annotations.Attribute;
-import com.edunetcracker.startreker.domain.annotations.Table;
-import com.edunetcracker.startreker.domain.annotations.PrimaryKey;
+import com.edunetcracker.startreker.dao.annotations.Attribute;
+import com.edunetcracker.startreker.dao.annotations.Table;
+import com.edunetcracker.startreker.dao.annotations.PrimaryKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.jdbc.support.rowset.SqlRowSet;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.*;
 
 public abstract class CrudDAO<T> {
 
     private JdbcTemplate jdbcTemplate;
-    private Class<?> clazz;
+    private Class<T> clazz;
     private String selectSql;
     private String createSql;
     private String updateSql;
@@ -25,9 +33,11 @@ public abstract class CrudDAO<T> {
     private Map<Field, Attribute> mapper = new HashMap<>();
     private final Logger logger = LoggerFactory.getLogger(CrudDAO.class);
 
-    public CrudDAO(JdbcTemplate jdbcTemplate, Class<?> clazz) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.clazz = clazz;
+    public CrudDAO() {
+        // Hack to get generic type class
+        Type t = getClass().getGenericSuperclass();
+        ParameterizedType pt = (ParameterizedType) t;
+        this.clazz = (Class<T>) pt.getActualTypeArguments()[0];
         resolveFields();
         selectSql = assembleSelectSql();
         createSql = assembleCreateSql();
@@ -40,7 +50,7 @@ public abstract class CrudDAO<T> {
         SqlRowSet rowSet = jdbcTemplate.queryForRowSet(selectSql, id);
         if (!rowSet.next()) return Optional.empty();
         try {
-            Object entity = clazz.getConstructor().newInstance();
+            T entity = clazz.getConstructor().newInstance();
             for (Map.Entry<Field, PrimaryKey> entry : primaryMapper.entrySet()) {
                 Object attr;
                 attr = castTypes(
@@ -54,7 +64,7 @@ public abstract class CrudDAO<T> {
                         entry.getKey().getGenericType().getTypeName());
                 entry.getKey().set(entity, attr);
             }
-            return Optional.of((T) entity);
+            return Optional.of(entity);
         } catch (Exception e) {
             logger.warn(e.toString());
         }
@@ -63,7 +73,27 @@ public abstract class CrudDAO<T> {
 
     public void save(T entity) {
         if (!isAlreadyExists(entity)) {
-            jdbcTemplate.update(createSql, resolveParameters(entity));
+            PreparedStatementCreator psc = connection -> {
+                PreparedStatement ps = connection.prepareStatement(
+                        createSql,
+                        Statement.RETURN_GENERATED_KEYS);
+                int i = 1;
+                for(Object obj : resolveCreateParameters(entity)){
+                    ps.setObject(i++, obj);
+                }
+                return ps;
+            };
+            KeyHolder holder = new GeneratedKeyHolder();
+            jdbcTemplate.update(psc, holder);
+            for(Field field : primaryMapper.keySet()){
+                try {
+                    field.set(entity, holder.getKeys().get(
+                            field.getAnnotation(PrimaryKey.class)
+                                    .value()));
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
         }
         else update(entity);
     }
@@ -73,15 +103,15 @@ public abstract class CrudDAO<T> {
     }
 
     protected void update(T entity) {
-        jdbcTemplate.update(updateSql, resolveParameters(entity));
+        jdbcTemplate.update(updateSql, resolveUpdateParameters(entity));
     }
 
     private boolean isAlreadyExists(T entity) {
-        Integer count = jdbcTemplate.queryForObject(
+        Long count = jdbcTemplate.queryForObject(
                 existsSql,
-                Integer.class,
+                Long.class,
                 resolvePrimaryKeyParameters(entity));
-        return count > 0;
+        return count > 0L;
     }
 
     private Object castTypes(Object attr, String fieldType) {
@@ -97,7 +127,13 @@ public abstract class CrudDAO<T> {
         return attr;
     }
 
-    private Object[] resolveParameters(T entity) {
+    private Object[] resolveCreateParameters(T entity) {
+        List<Object> objects = new ArrayList<>();
+        addMapperParams(objects, entity, mapper);
+        return objects.toArray();
+    }
+
+    private Object[] resolveUpdateParameters(T entity) {
         List<Object> objects = new ArrayList<>();
         addMapperParams(objects, entity, mapper);
         addMapperParams(objects, entity, primaryMapper);
@@ -116,6 +152,7 @@ public abstract class CrudDAO<T> {
                 objects.add(field.get(entity));
             } catch (IllegalAccessException e) {
                 logger.warn(e.toString());
+                throw new RuntimeException(e);
             }
         }
     }
@@ -127,12 +164,9 @@ public abstract class CrudDAO<T> {
         for (Attribute attribute : mapper.values()) {
             sb.append(attribute.value()).append(", ");
         }
-        for (PrimaryKey primaryKey : primaryMapper.values()) {
-            sb.append(primaryKey.value()).append(", ");
-        }
         sb.delete(sb.length() - 2, sb.length());
         sb.append(") VALUES(");
-        for (int i = 0; i < (primaryMapper.size() + mapper.size()); i++) {
+        for (int i = 0; i < mapper.size(); i++) {
             sb.append("?, ");
         }
         sb.delete(sb.length() - 2, sb.length());
@@ -190,5 +224,14 @@ public abstract class CrudDAO<T> {
             PrimaryKey primaryKey = field.getAnnotation(PrimaryKey.class);
             if (primaryKey != null) primaryMapper.put(field, primaryKey);
         }
+    }
+
+    protected JdbcTemplate getJdbcTemplate() {
+        return jdbcTemplate;
+    }
+
+    @Autowired
+    private void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 }

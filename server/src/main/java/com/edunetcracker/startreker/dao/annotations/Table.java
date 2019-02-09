@@ -1,12 +1,12 @@
-package com.edunetcracker.startreker.domain.annotations;
+package com.edunetcracker.startreker.dao.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.FIELD)
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Attribute {
+public @interface Table {
     String value();
 }
