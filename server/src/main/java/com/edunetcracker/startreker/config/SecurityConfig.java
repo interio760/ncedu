@@ -17,6 +17,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -32,17 +35,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        /*http.authorizeRequests().
-                antMatchers("/api/auth/**").permitAll().
-                anyRequest().authenticated().
+        http.csrf().disable().authorizeRequests().
+                antMatchers("/api/auth/sign-in").permitAll().
+                antMatchers("/api/auth/signup").permitAll().
                 and().
                 sessionManagement().
-                sessionCreationPolicy(SessionCreationPolicy.STATELESS);*/
+                sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
-        http.authorizeRequests().
-                antMatchers("/api/auth/signup").permitAll();
-
-       // http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
     }
 
     @Override
@@ -68,9 +68,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
     }
-/*
+
     @Bean
     public JwtAuthFilter authenticationJwtTokenFilter() {
         return new JwtAuthFilter();
-    }*/
+    }
 }
