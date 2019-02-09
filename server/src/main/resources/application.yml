@@ -3,9 +3,9 @@ spring:
     name: Spring Boot Ng
 
 server:
-  port: 80
+  port: 8080
 
 oracle:
   url: jdbc:oracle:thin:@localhost:1521:xe
-  username: <>
-  password: <>
+  username: barrelpro
+  password: qwe123asd
