@@ -30,6 +30,10 @@ public class User implements UserDetails {
     private String userName;
     @Attribute("user_password")
     private String userPassword;
+    @Attribute("user_email")
+    private String userEmail;
+    @Attribute("user_refresh_token")
+    private String userRefreshToken;
 
     private List<Role> userRoles = new ArrayList<>();
 

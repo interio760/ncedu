@@ -41,7 +41,8 @@ public class UserDAO extends CrudDAO<User> implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return findByUsername(username).orElse(null);
+        return findByUsername(username).orElseThrow(
+                () -> new UsernameNotFoundException(username + " not found"));
     }
 
     public Optional<User> findByUsername(String userName) {
