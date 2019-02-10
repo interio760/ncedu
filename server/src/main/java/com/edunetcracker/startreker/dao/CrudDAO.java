@@ -3,6 +3,7 @@ package com.edunetcracker.startreker.dao;
 import com.edunetcracker.startreker.dao.annotations.Attribute;
 import com.edunetcracker.startreker.dao.annotations.Table;
 import com.edunetcracker.startreker.dao.annotations.PrimaryKey;
+import com.edunetcracker.startreker.dao.mapper.GenericMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,12 +11,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.jdbc.support.rowset.SqlRowSet;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.*;
@@ -29,10 +28,12 @@ public abstract class CrudDAO<T> {
     private String updateSql;
     private String deleteSql;
     private String existsSql;
+    private GenericMapper<T> genericMapper;
     private Map<Field, PrimaryKey> primaryMapper = new HashMap<>();
     private Map<Field, Attribute> mapper = new HashMap<>();
     private final Logger logger = LoggerFactory.getLogger(CrudDAO.class);
 
+    @Autowired
     public CrudDAO() {
         // Hack to get generic type class
         Type t = getClass().getGenericSuperclass();
@@ -44,31 +45,18 @@ public abstract class CrudDAO<T> {
         updateSql = assembleUpdateSql();
         deleteSql = assembleDeleteSql();
         existsSql = assembleExistsSql();
+        genericMapper = new GenericMapper<>();
+        genericMapper.setClazz(clazz);
+        genericMapper.setMapper(mapper);
+        genericMapper.setPrimaryMapper(primaryMapper);
     }
 
     public Optional<T> find(Number id) {
-        SqlRowSet rowSet = jdbcTemplate.queryForRowSet(selectSql, id);
-        if (!rowSet.next()) return Optional.empty();
-        try {
-            T entity = clazz.getConstructor().newInstance();
-            for (Map.Entry<Field, PrimaryKey> entry : primaryMapper.entrySet()) {
-                Object attr;
-                attr = castTypes(
-                        rowSet.getObject(entry.getValue().value()),
-                        entry.getKey().getGenericType().getTypeName());
-                entry.getKey().set(entity, attr);
-            }
-            for (Map.Entry<Field, Attribute> entry : mapper.entrySet()) {
-                Object attr = castTypes(
-                        rowSet.getObject(entry.getValue().value()),
-                        entry.getKey().getGenericType().getTypeName());
-                entry.getKey().set(entity, attr);
-            }
-            return Optional.of(entity);
-        } catch (Exception e) {
-            logger.warn(e.toString());
-        }
-        return Optional.empty();
+        T entity = jdbcTemplate.queryForObject(
+                selectSql,
+                new Object[]{id},
+                genericMapper);
+        return Optional.ofNullable(entity);
     }
 
     public void save(T entity) {
@@ -112,19 +100,6 @@ public abstract class CrudDAO<T> {
                 Long.class,
                 resolvePrimaryKeyParameters(entity));
         return count > 0L;
-    }
-
-    private Object castTypes(Object attr, String fieldType) {
-        if (attr instanceof BigDecimal) {
-            BigDecimal bd = (BigDecimal) attr;
-            if (fieldType.equals("java.lang.Integer")) {
-                attr = bd.intValueExact();
-            }
-            if (fieldType.equals("java.lang.Long")) {
-                attr = bd.longValueExact();
-            }
-        }
-        return attr;
     }
 
     private Object[] resolveCreateParameters(T entity) {
@@ -228,6 +203,10 @@ public abstract class CrudDAO<T> {
 
     protected JdbcTemplate getJdbcTemplate() {
         return jdbcTemplate;
+    }
+
+    protected GenericMapper<T> getGenericMapper() {
+        return genericMapper;
     }
 
     @Autowired

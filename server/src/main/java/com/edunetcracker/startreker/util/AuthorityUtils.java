@@ -2,6 +2,7 @@ package com.edunetcracker.startreker.util;
 
 import com.edunetcracker.startreker.dao.RoleDAO;
 import com.edunetcracker.startreker.domain.Role;
+import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,7 +11,7 @@ import javax.annotation.PostConstruct;
 @Service
 public class AuthorityUtils {
 
-    private RoleDAO roleDAO;
+    private final RoleDAO roleDAO;
     public static Role ROLE_ADMIN;
     public static Role ROLE_USER;
     public static Role ROLE_CARRIER;
@@ -22,8 +23,11 @@ public class AuthorityUtils {
 
     @PostConstruct
     public void init(){
-        ROLE_ADMIN = roleDAO.find(1).get();
-        ROLE_USER = roleDAO.find(2).get();
-        ROLE_CARRIER = roleDAO.find(3).get();
+        ROLE_ADMIN = roleDAO.find(1).orElseThrow(
+                () -> new BeanInitializationException("AuthorityUtils: ROLE_ADMIN Not Found in the Database"));
+        ROLE_USER = roleDAO.find(2).orElseThrow(
+                () -> new BeanInitializationException("AuthorityUtils: ROLE_USER Not Found in the Database"));
+        ROLE_CARRIER = roleDAO.find(3).orElseThrow(
+                () -> new BeanInitializationException("AuthorityUtils: ROLE_CARRIER Not Found in the Database"));
     }
 }

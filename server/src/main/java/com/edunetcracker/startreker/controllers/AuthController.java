@@ -1,10 +1,12 @@
 package com.edunetcracker.startreker.controllers;
 
+import com.edunetcracker.startreker.controllers.exception.RequestException;
 import com.edunetcracker.startreker.dao.UserDAO;
 import com.edunetcracker.startreker.domain.Role;
 import com.edunetcracker.startreker.domain.User;
-import com.edunetcracker.startreker.forms.SignInForm;
+import com.edunetcracker.startreker.dto.UserDTO;
 import com.edunetcracker.startreker.forms.SignUpForm;
+import com.edunetcracker.startreker.forms.UserForm;
 import com.edunetcracker.startreker.security.jwt.JwtProvider;
 import com.edunetcracker.startreker.security.jwtResponse.JwtResponse;
 import com.edunetcracker.startreker.util.AuthorityUtils;
@@ -18,6 +20,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +32,8 @@ public class AuthController {
     private UserDAO userDAO;
     private PasswordEncoder passwordEncoder;
 
+    private final String ERROR_USER_ALREADY_EXISTS = "-1";
+
     @Autowired
     public AuthController(AuthenticationManager authenticationManager,
                           JwtProvider jwtProvider,
@@ -39,8 +44,11 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    @RequestMapping(path = "/api/auth/signup")
-    public void signUp(@RequestBody SignUpForm signUpForm) {
+    @PostMapping(path = "/api/auth/signup")
+    public ResponseEntity<UserDTO> signUp(@Valid @RequestBody SignUpForm signUpForm) {
+        if(userDAO.findByUsername(signUpForm.getUsername()).isPresent()){
+            throw new RequestException(ERROR_USER_ALREADY_EXISTS);
+        }
         User user = new User(signUpForm.getUsername(), passwordEncoder.encode(signUpForm.getPassword()));
         List<Role> roleList = new ArrayList<>();
         roleList.add(AuthorityUtils.ROLE_USER);
@@ -49,15 +57,16 @@ public class AuthController {
         }
         user.setUserRoles(roleList);
         userDAO.save(user);
+        return ResponseEntity.created(null).body(UserDTO.from(user));
     }
 
-    @RequestMapping(path = "/api/auth/adminreg")
-    public String signUpAdmin(SignUpForm signUpForm) {
+    @PostMapping(path = "/api/auth/adminreg")
+    public String signUpAdmin(@Valid @RequestBody SignUpForm signUpForm) {
         return passwordEncoder.encode(signUpForm.getPassword());
     }
 
-    @RequestMapping("/api/auth/sign-in")
-    public ResponseEntity<?> signIn(@RequestBody SignInForm signInForm) {
+    @PostMapping("/api/auth/sign-in")
+    public ResponseEntity<?> signIn(@Valid @RequestBody UserForm signInForm) {
         try {
             Authentication authentication = authenticationManager.
                     authenticate(new UsernamePasswordAuthenticationToken(

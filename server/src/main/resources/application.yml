@@ -11,3 +11,9 @@ postgres:
   database: ncpj
   username: postgres
   password: 04692225asdASD
+
+mail:
+  host: smtp.gmail.com
+  port: 587
+  username: <>
+  password: <>
