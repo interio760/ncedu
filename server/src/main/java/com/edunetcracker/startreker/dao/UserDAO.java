@@ -4,6 +4,9 @@ import com.edunetcracker.startreker.domain.Role;
 import com.edunetcracker.startreker.domain.User;
 import com.edunetcracker.startreker.domain.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -12,7 +15,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
-public class UserDAO extends CrudDAO<User> {
+public class UserDAO extends CrudDAO<User> implements UserDetailsService {
 
     private RoleDAO roleDAO;
     private final String findByUsernameSql = "SELECT * FROM usr WHERE user_name = ?";
@@ -86,4 +89,9 @@ public class UserDAO extends CrudDAO<User> {
         super.delete(user);
     }
 
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        return findByUsername(username).orElseThrow(
+                () -> new UsernameNotFoundException("Invalid username or password."));
+    }
 }
