@@ -1,10 +1,11 @@
 package com.edunetcracker.startreker.security.jwt;
 
-import com.edunetcracker.startreker.security.customUserDelails.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -19,8 +20,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private JwtProvider jwtProvider;
 
+    @Qualifier("UserDetailsServiceImpl")
     @Autowired
-    private CustomUserDetails customUserDetails;
+    private UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException {
@@ -28,7 +30,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String jwt = getJWT(httpServletRequest);
 
         if (jwtProvider.validateToken(jwt)) {
-            UserDetails userDetails = customUserDetails.loadUserByUsername(jwtProvider.retrieveUsername(jwt));
+            UserDetails userDetails = userDetailsService.loadUserByUsername(jwtProvider.retrieveUsername(jwt));
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails
                     .getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
