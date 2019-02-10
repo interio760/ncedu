@@ -10,4 +10,4 @@ postgres:
   port: 5432
   database: ncpj
   username: postgres
-  password: 04692225asdASD
+  password: root

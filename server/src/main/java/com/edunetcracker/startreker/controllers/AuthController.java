@@ -39,7 +39,7 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    @RequestMapping(path = "/api/auth/signup")
+    @RequestMapping(path = "/api/auth/sign-up")
     public void signUp(@RequestBody SignUpForm signUpForm) {
         User user = new User(signUpForm.getUsername(), passwordEncoder.encode(signUpForm.getPassword()));
         List<Role> roleList = new ArrayList<>();
@@ -51,6 +51,7 @@ public class AuthController {
         userDAO.save(user);
     }
 
+    //Temporary
     @RequestMapping(path = "/api/auth/adminreg")
     public String signUpAdmin(SignUpForm signUpForm) {
         return passwordEncoder.encode(signUpForm.getPassword());
