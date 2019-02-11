@@ -22,7 +22,7 @@ public class AuthorityUtils {
     }
 
     @PostConstruct
-    public void init(){
+    public void init() {
         ROLE_ADMIN = roleDAO.find(1).orElseThrow(
                 () -> new BeanInitializationException("AuthorityUtils: ROLE_ADMIN Not Found in the Database"));
         ROLE_USER = roleDAO.find(2).orElseThrow(

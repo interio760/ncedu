@@ -2,14 +2,30 @@ package com.edunetcracker.startreker.controllers.exception;
 
 public class RequestException extends RuntimeException {
 
-    private String errorMessage;
+    private int errorCode;
 
-    public RequestException(String errorMessage) {
-        this.errorMessage = errorMessage;
+    public RequestException() {
+        super();
     }
 
-    public String getErrorMessage() {
-        return errorMessage;
+    public RequestException(String message, int errorCode) {
+        super(message);
+        this.errorCode = errorCode;
     }
 
+    public RequestException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public RequestException(Throwable cause) {
+        super(cause);
+    }
+
+    protected RequestException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        super(message, cause, enableSuppression, writableStackTrace);
+    }
+
+    public int getErrorCode() {
+        return errorCode;
+    }
 }

@@ -19,6 +19,7 @@ public class UserDAO extends CrudDAO<User> implements UserDetailsService {
 
     private final RoleDAO roleDAO;
     private final String findByUsernameSql = "SELECT * FROM usr WHERE user_name = ?";
+    private final String findByEmailSql = "SELECT * FROM usr WHERE user_email = ?";
     private final String findAllRolesSql = "SELECT role_id FROM assigned_role WHERE user_id = ?";
     private final String removeAllUserRolesSql = "DELETE FROM assigned_role WHERE user_id = ?";
     private final String addRoleSql = "INSERT INTO assigned_role (user_id, role_id) VALUES (?, ?)";
@@ -50,6 +51,18 @@ public class UserDAO extends CrudDAO<User> implements UserDetailsService {
             User user = getJdbcTemplate().queryForObject(
                     findByUsernameSql,
                     new Object[]{userName},
+                    getGenericMapper());
+            return user != null ? attachRoles(user) : Optional.empty();
+        }catch (EmptyResultDataAccessException e){
+            return Optional.empty();
+        }
+    }
+
+    public Optional<User> findByEmail(String email) {
+        try{
+            User user = getJdbcTemplate().queryForObject(
+                    findByEmailSql,
+                    new Object[]{email},
                     getGenericMapper());
             return user != null ? attachRoles(user) : Optional.empty();
         }catch (EmptyResultDataAccessException e){

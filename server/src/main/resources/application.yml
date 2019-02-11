@@ -3,17 +3,17 @@ spring:
     name: Spring Boot Ng
 
 server:
-  port: 80
+  port: 8080
 
 postgres:
   servername: localhost
   port: 5432
-  database: ncpj
-  username: postgres
-  password: 04692225asdASD
+  database: NCProject
+  username: vitya
+  password: qwe123asd
 
 mail:
   host: smtp.gmail.com
   port: 587
-  username: sottitaa@gmail.com
-  password: 04692225asdASD
+  username: ivan.viktor.nc@gmail.com
+  password: D$h%0WHpdx81
