@@ -1,4 +1,4 @@
-package com.edunetcracker.startreker.forms;
+package com.edunetcracker.startreker.message.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

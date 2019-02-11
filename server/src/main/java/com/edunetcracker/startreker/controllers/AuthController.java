@@ -4,9 +4,9 @@ import com.edunetcracker.startreker.controllers.exception.RequestException;
 import com.edunetcracker.startreker.dao.UserDAO;
 import com.edunetcracker.startreker.domain.User;
 import com.edunetcracker.startreker.dto.UserDTO;
-import com.edunetcracker.startreker.forms.EmailFrom;
-import com.edunetcracker.startreker.forms.SignUpForm;
-import com.edunetcracker.startreker.forms.UserForm;
+import com.edunetcracker.startreker.message.request.EmailFrom;
+import com.edunetcracker.startreker.message.request.SignUpForm;
+import com.edunetcracker.startreker.message.request.UserForm;
 import com.edunetcracker.startreker.security.jwt.JwtProvider;
 import com.edunetcracker.startreker.security.jwtResponse.JwtResponse;
 import com.edunetcracker.startreker.service.EmailService;
@@ -63,7 +63,7 @@ public class AuthController {
 
         emailService.sendRegistrationMessage(signUpForm.getEmail(),
                 getContextPath(request),
-                jwtProvider.generateToken(user.getUsername()));
+                jwtProvider.generateMailRegistrationToken(user.getUsername()));
 
         return UserDTO.from(user);
     }
@@ -87,21 +87,17 @@ public class AuthController {
 
     @PostMapping("/api/auth/sign-in")
     public ResponseEntity<?> signIn(@Valid @RequestBody UserForm signInForm) {
-        try {
-            Authentication authentication = authenticationManager.
-                    authenticate(new UsernamePasswordAuthenticationToken(
-                            signInForm.getUsername(),
-                            signInForm.getPassword()));
 
-            String jwt = jwtProvider.generateToken(authentication);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Authentication authentication = authenticationManager.
+                authenticate(new UsernamePasswordAuthenticationToken(
+                        signInForm.getUsername(),
+                        signInForm.getPassword()));
 
-            return ResponseEntity.ok(new JwtResponse(jwt, "Bearer", userDetails.getUsername(), userDetails.getAuthorities()));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        String jwt = jwtProvider.generateAuthenticationToken(authentication);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+        return ResponseEntity.ok(new JwtResponse(jwt, "Bearer", userDetails.getUsername(), userDetails.getAuthorities()));
     }
 
     private String getContextPath(HttpServletRequest request) {

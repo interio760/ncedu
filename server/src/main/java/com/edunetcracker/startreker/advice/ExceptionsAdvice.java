@@ -2,7 +2,7 @@ package com.edunetcracker.startreker.advice;
 
 import com.edunetcracker.startreker.controllers.exception.RequestException;
 import com.edunetcracker.startreker.dto.ValidationExceptionDTO;
-import com.edunetcracker.startreker.message.RequestExceptionMessage;
+import com.edunetcracker.startreker.message.response.RequestExceptionMessage;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;

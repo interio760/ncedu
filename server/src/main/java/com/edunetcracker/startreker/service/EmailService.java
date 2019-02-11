@@ -7,12 +7,18 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @Component
 @PropertySource("classpath:mail.properties")
 public class EmailService {
 
     @Autowired
     private JavaMailSender emailSender;
+
+    @Autowired
+    private ExecutorService emailExecutor;
 
     @Value("${mail.registration.subject}")
     private String registrationSubject;
@@ -30,20 +36,23 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setSubject(getSubject(registrationSubject, contextPath));
         message.setText(registrationText + " : " + contextPath + registrationEndPointUri + "?token=" + token);
+
         sendSimpleMessage(message, to);
     }
 
     public void sendPasswordRecoveryMessage(String to, String username, String password) {
-        SimpleMailMessage message = new SimpleMailMessage();;
+        SimpleMailMessage message = new SimpleMailMessage();
         message.setSubject(getSubject(passwordRecoverySubject, username));
         message.setText(passwordRecoveryText + " : " + username + ". New Password " + password);
+
         sendSimpleMessage(message, to);
     }
 
     private void sendSimpleMessage(SimpleMailMessage message, String to) {
         message.setFrom("nc-project@mail.ru");
         message.setTo(to);
-        emailSender.send(message);
+
+        emailExecutor.execute(() -> emailSender.send(message));
     }
 
     private String getSubject(String subject, String line) {

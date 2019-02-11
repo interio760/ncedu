@@ -3,14 +3,20 @@ package com.edunetcracker.startreker.service;
 import com.edunetcracker.startreker.dao.UserDAO;
 import com.edunetcracker.startreker.domain.Role;
 import com.edunetcracker.startreker.domain.User;
-import com.edunetcracker.startreker.forms.SignUpForm;
+import com.edunetcracker.startreker.message.request.SignUpForm;
+import com.edunetcracker.startreker.security.jwt.UserInformationHolder;
 import com.edunetcracker.startreker.util.AuthorityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -50,6 +56,16 @@ public class UserService {
         userDAO.save(user);
 
         return user;
+    }
+
+    public UserDetails createUserDetails(UserInformationHolder userInformationHolder) {
+        return new org.springframework.security.core.userdetails.User(userInformationHolder.getUsername(),
+                userInformationHolder.getPassword(),
+                mapRolesToAuthorities(userInformationHolder.getRoles()));
+    }
+
+    private Collection<? extends GrantedAuthority> mapRolesToAuthorities(Collection<String> roles) {
+        return roles.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList());
     }
 
     private List<Role> createRoles(boolean isCarrier) {
