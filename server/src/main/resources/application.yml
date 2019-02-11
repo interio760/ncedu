@@ -1,6 +1,8 @@
 spring:
   application:
     name: Spring Boot Ng
+  profiles:
+    active: prod
 
 server:
   port: 80

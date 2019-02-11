@@ -7,6 +7,7 @@ import com.edunetcracker.startreker.dao.mapper.GenericMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -52,11 +53,15 @@ public abstract class CrudDAO<T> {
     }
 
     public Optional<T> find(Number id) {
-        T entity = jdbcTemplate.queryForObject(
-                selectSql,
-                new Object[]{id},
-                genericMapper);
-        return Optional.ofNullable(entity);
+        try{
+            T entity = jdbcTemplate.queryForObject(
+                    selectSql,
+                    new Object[]{id},
+                    genericMapper);
+            return Optional.ofNullable(entity);
+        }catch (EmptyResultDataAccessException e){
+            return Optional.empty();
+        }
     }
 
     public void save(T entity) {
@@ -79,7 +84,7 @@ public abstract class CrudDAO<T> {
                             field.getAnnotation(PrimaryKey.class)
                                     .value()));
                 } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    logger.warn(e.toString());
                 }
             }
         }
