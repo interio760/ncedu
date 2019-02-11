@@ -1,8 +1,9 @@
 package com.edunetcracker.startreker.config;
 
-import com.edunetcracker.startreker.security.customUserDelails.CustomUserDetails;
+import com.edunetcracker.startreker.dao.UserDAO;
 import com.edunetcracker.startreker.security.jwt.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,6 +15,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -26,12 +28,8 @@ import org.springframework.web.filter.CorsFilter;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    private final CustomUserDetails userDetails;
-
     @Autowired
-    public SecurityConfig(CustomUserDetails userDetails) {
-        this.userDetails = userDetails;
-    }
+    private UserDAO userDAO;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -46,7 +44,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+    protected void configure(AuthenticationManagerBuilder auth) {
         auth.authenticationProvider(authenticationProvider());
     }
 
@@ -58,7 +56,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider auth = new DaoAuthenticationProvider();
-        auth.setUserDetailsService(userDetails); //set the custom user details service
+        auth.setUserDetailsService(userDAO); //set the custom user details service
         auth.setPasswordEncoder(passwordEncoder()); //set the password encoder - bcrypt
         return auth;
     }

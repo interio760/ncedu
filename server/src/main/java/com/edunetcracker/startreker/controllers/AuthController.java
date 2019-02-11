@@ -7,6 +7,7 @@ import com.edunetcracker.startreker.forms.SignInForm;
 import com.edunetcracker.startreker.forms.SignUpForm;
 import com.edunetcracker.startreker.security.jwt.JwtProvider;
 import com.edunetcracker.startreker.security.jwtResponse.JwtResponse;
+import com.edunetcracker.startreker.services.EmailService;
 import com.edunetcracker.startreker.util.AuthorityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -28,20 +29,22 @@ public class AuthController {
     private JwtProvider jwtProvider;
     private UserDAO userDAO;
     private PasswordEncoder passwordEncoder;
+    private EmailService emailService;
 
     @Autowired
     public AuthController(AuthenticationManager authenticationManager,
                           JwtProvider jwtProvider,
-                          UserDAO userDAO, PasswordEncoder passwordEncoder) {
+                          UserDAO userDAO, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.jwtProvider = jwtProvider;
         this.userDAO = userDAO;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
-    @RequestMapping(path = "/api/auth/signup")
+    @RequestMapping(path = "/api/auth/sign-up")
     public void signUp(@RequestBody SignUpForm signUpForm) {
-        User user = new User(signUpForm.getUsername(), passwordEncoder.encode(signUpForm.getPassword()));
+        User user = new User(signUpForm.getUsername(), passwordEncoder.encode(signUpForm.getPassword()), signUpForm.getEmail());
         List<Role> roleList = new ArrayList<>();
         roleList.add(AuthorityUtils.ROLE_USER);
         if (signUpForm.getIs_carrier()) {
@@ -49,8 +52,17 @@ public class AuthController {
         }
         user.setUserRoles(roleList);
         userDAO.save(user);
+
+        emailService.sendSimpleMessage(signUpForm.getEmail(), "Testing"
+                , "Testing aпи " + signUpForm.getUsername() + ":)");
     }
 
+    @RequestMapping(path = "/api/auth/confirmPassword")
+    public void confirmPassword() {} {
+
+    }
+
+    //Temporary
     @RequestMapping(path = "/api/auth/adminreg")
     public String signUpAdmin(SignUpForm signUpForm) {
         return passwordEncoder.encode(signUpForm.getPassword());

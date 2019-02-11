@@ -1,9 +1,13 @@
 package com.edunetcracker.startreker.config;
 
+import com.edunetcracker.startreker.dao.RoleDAO;
+import com.edunetcracker.startreker.dao.UserDAO;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;

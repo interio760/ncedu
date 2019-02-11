@@ -1,6 +1,15 @@
 spring:
   application:
     name: Spring Boot Ng
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ilinoleksiii@gmail.com
+    password: 2Brouthers
+    properties.mail.smtp:
+      auth: true
+      starttls.enable: true
+
 
 server:
   port: 80
@@ -10,4 +19,5 @@ postgres:
   port: 5432
   database: ncpj
   username: postgres
-  password: 04692225asdASD
+  password: root
+
