@@ -34,12 +34,15 @@ public class User implements UserDetails {
     private String userEmail;
     @Attribute("user_refresh_token")
     private String userRefreshToken;
+    @Attribute("user_is_activated")
+    private boolean userIsActivated;
 
     private List<Role> userRoles = new ArrayList<>();
 
-    public User(String userName, String userPassword) {
+    public User(String userName, String userPassword, String userEmail) {
         this.userName = userName;
         this.userPassword = userPassword;
+        this.userEmail = userEmail;
     }
 
     @Override
@@ -68,7 +71,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        return userIsActivated;
     }
 
     @Override

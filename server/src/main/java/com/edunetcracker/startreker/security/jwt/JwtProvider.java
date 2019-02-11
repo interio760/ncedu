@@ -1,9 +1,13 @@
 package com.edunetcracker.startreker.security.jwt;
 
+import com.edunetcracker.startreker.service.UserInformationHolderService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.security.core.Authentication;
@@ -18,28 +22,34 @@ public class JwtProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtProvider.class);
 
+    @Autowired
+    private UserInformationHolderService userInformationHolderService;
+
     @Value("${jwt.jwtSecret}")
     private String jwtSecret;
 
-    @Value("${jwt.jwtExpiration}")
-    private int jwtExpiration;
+    @Value("${jwt.jwtAuthenticationExpiration}")
+    private int jwtAuthenticationExpiration;
 
-    public String generateToken(Authentication authentication) {
-        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
+    @Value("${jwt.jwtMailRegistrationExpiration}")
+    private int jwtMailRegistrationExpiration;
 
-        return generateToken(userPrincipal);
+    @Value("${jwt.jwtRefreshExpiration}")
+    private int jwtRefreshExpiration;
+
+    public String generateAuthenticationToken(Authentication authentication) {
+        return generateTokenFromAuthentication(authentication, jwtAuthenticationExpiration);
     }
 
-    public String generateToken(UserDetails userDetails) {
-        return Jwts.builder()
-                .setSubject((userDetails.getUsername()))
-                .setIssuedAt(new Date())
-                .setExpiration(new Date((new Date()).getTime() + jwtExpiration))
-                .signWith(SignatureAlgorithm.HS512, jwtSecret)
-                .compact();
+    public String generateRefreshToken(Authentication authentication) {
+        return generateTokenFromAuthentication(authentication, jwtRefreshExpiration);
     }
 
-    public String retrieveUsername(String jwt) {
+    public String generateMailRegistrationToken(String username) {
+        return generateToken(username, jwtMailRegistrationExpiration);
+    }
+
+    public String retrieveSubject(String jwt) {
         return Jwts.parser()
                 .setSigningKey(jwtSecret)
                 .parseClaimsJws(jwt)
@@ -55,5 +65,26 @@ public class JwtProvider {
         }
 
         return false;
+    }
+
+    private String generateTokenFromAuthentication(Authentication authentication, int expiration) {
+        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
+
+        String userInformationHolder = userInformationHolderService.convertAsString(userPrincipal);
+
+        if (userInformationHolder.equals("")) {
+            throw new RuntimeException("Something went wrong");
+        }
+
+        return generateToken(userInformationHolder, expiration);
+    }
+
+    private String generateToken(String subject, int expiration) {
+        return Jwts.builder()
+                .setSubject(subject)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date((new Date()).getTime() + expiration))
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .compact();
     }
 }

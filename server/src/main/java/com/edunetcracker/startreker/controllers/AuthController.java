@@ -2,17 +2,15 @@ package com.edunetcracker.startreker.controllers;
 
 import com.edunetcracker.startreker.controllers.exception.RequestException;
 import com.edunetcracker.startreker.dao.UserDAO;
-import com.edunetcracker.startreker.domain.Role;
 import com.edunetcracker.startreker.domain.User;
+import com.edunetcracker.startreker.message.request.SignUpForm;
 import com.edunetcracker.startreker.dto.UserDTO;
-import com.edunetcracker.startreker.forms.ConfirmationForm;
-import com.edunetcracker.startreker.forms.SignUpForm;
-import com.edunetcracker.startreker.forms.UserForm;
+import com.edunetcracker.startreker.message.request.EmailFrom;
+import com.edunetcracker.startreker.message.request.UserForm;
 import com.edunetcracker.startreker.security.jwt.JwtProvider;
 import com.edunetcracker.startreker.security.jwtResponse.JwtResponse;
-import com.edunetcracker.startreker.services.EmailService;
-import com.edunetcracker.startreker.util.AuthorityUtils;
-import javassist.tools.web.BadHttpRequest;
+import com.edunetcracker.startreker.service.EmailService;
+import com.edunetcracker.startreker.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,73 +18,89 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 @RestController
 public class AuthController {
 
+    private static final int ERROR_USER_ALREADY_EXISTS = -1;
+    private static final int ERROR_MAIL_ALREADY_EXISTS = -2;
+    private static final int ERROR_NO_SUCH_USER = -3;
+
     private AuthenticationManager authenticationManager;
     private JwtProvider jwtProvider;
     private UserDAO userDAO;
-    private PasswordEncoder passwordEncoder;
+    private UserService userService;
     private EmailService emailService;
-
-    private final String ERROR_USER_ALREADY_EXISTS = "-1";
 
     @Autowired
     public AuthController(AuthenticationManager authenticationManager,
                           JwtProvider jwtProvider,
-                          UserDAO userDAO, PasswordEncoder passwordEncoder, EmailService emailService) {
+                          UserDAO userDAO,
+                          UserService userService,
+                          EmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.jwtProvider = jwtProvider;
         this.userDAO = userDAO;
-        this.passwordEncoder = passwordEncoder;
+        this.userService = userService;
         this.emailService = emailService;
     }
 
     @PostMapping(path = "/api/auth/sign-up")
-    public ResponseEntity<UserDTO> signUp(@Valid @RequestBody SignUpForm signUpForm) {
-        if (userDAO.findByUsername(signUpForm.getUsername()).isPresent()) {
-            throw new RequestException(ERROR_USER_ALREADY_EXISTS);
+    public UserDTO signUp(@Valid @RequestBody SignUpForm signUpForm, HttpServletRequest request){
+        if (userService.ifUsernameExist(signUpForm.getUsername())) {
+            throw new RequestException("Username already exist", ERROR_USER_ALREADY_EXISTS);
         }
-        User user = new User(signUpForm.getUsername(), passwordEncoder.encode(signUpForm.getPassword()));
-        List<Role> roleList = new ArrayList<>();
-        roleList.add(AuthorityUtils.ROLE_USER);
-        if (signUpForm.getIs_carrier()) {
-            roleList.add(AuthorityUtils.ROLE_CARRIER);
+
+        if (userService.ifEmailExist(signUpForm.getEmail())) {
+            throw new RequestException("Email already exist", ERROR_MAIL_ALREADY_EXISTS);
         }
-        user.setUserRoles(roleList);
-        userDAO.save(user);
 
-        String jwt = jwtProvider.generateToken(user);
+        User user = userService.createUser(signUpForm, false);
 
-        emailService.sendSimpleMessage(signUpForm.getEmail(), "Confirmation"
-                , "Hello, " + user.getUsername() + "! Your token is " + jwt );
+        emailService.sendRegistrationMessage(signUpForm.getEmail(),
+                getContextPath(request),
+                jwtProvider.generateMailRegistrationToken(user.getUsername()));
 
-        return ResponseEntity.created(null).body(UserDTO.from(user));
+        return UserDTO.from(user);
+    }
+
+    @PostMapping(path = "/api/auth/password-recovery")
+    public EmailFrom passwordRecovery(@Valid @RequestBody EmailFrom emailFrom) {
+        User user = userService.getUserByEmail(emailFrom.getEmail());
+
+        if (user == null) {
+            throw new RequestException("No such user", ERROR_NO_SUCH_USER);
+        }
+
+        String newUserPassword = userService.changePasswordForUser(user);
+
+        emailService.sendPasswordRecoveryMessage(emailFrom.getEmail(),
+                user.getUsername(),
+                newUserPassword);
+
+        return emailFrom;
     }
 
     @PostMapping(path = "/api/log-out")
-    public String logOut(@Valid @RequestBody SignUpForm signUpForm) {
+    public String logOut() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null) {
-            throw new RequestException("User is not authenticated!");
+            throw new RequestException("User is not authenticated!", 1);
         }
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
         Optional<User> userOptional = userDAO.findByUsername(
-                jwtProvider.retrieveUsername(userDetails.getUsername()));
+                jwtProvider.retrieveSubject(userDetails.getUsername()));
 
         if (!userOptional.isPresent())
-            throw new RequestException("No such user!");
+            throw new RequestException("No such user!", 2);
 
         User user = userOptional.get();
         user.setUserRefreshToken(null);
@@ -95,47 +109,42 @@ public class AuthController {
         return "OK";
     }
 
-    @PostMapping(path = "api/auth/confirmPassword")
+    @GetMapping(path = "api/auth/confirmPassword")
     public ResponseEntity<String> confirmPassword(@Valid @RequestParam("token") String token) {
 
         if (!jwtProvider.validateToken(token))
             return ResponseEntity.created(null).body("NOT OK1");
 
         Optional<User> userOptional = userDAO.findByUsername(
-                jwtProvider.retrieveUsername(token));
+                jwtProvider.retrieveSubject(token));
 
         if (!userOptional.isPresent())
             return ResponseEntity.created(null).body("NOT OK2");
 
         User user = userOptional.get();
-        user.setUserEnabled(true);
+        user.setUserIsActivated(true);
         userDAO.save(user);
 
         return ResponseEntity.created(null).body("OK");
     }
 
-
-    @PostMapping(path = "/api/auth/adminreg")
-    public String signUpAdmin(@Valid @RequestBody SignUpForm signUpForm) {
-        return passwordEncoder.encode(signUpForm.getPassword());
-    }
-
     @PostMapping("/api/auth/sign-in")
     public ResponseEntity<?> signIn(@Valid @RequestBody UserForm signInForm) {
-        try {
-            Authentication authentication = authenticationManager.
-                    authenticate(new UsernamePasswordAuthenticationToken(
-                            signInForm.getUsername(),
-                            signInForm.getPassword()));
 
-            String jwt = jwtProvider.generateToken(authentication);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        Authentication authentication = authenticationManager.
+                authenticate(new UsernamePasswordAuthenticationToken(
+                        signInForm.getUsername(),
+                        signInForm.getPassword()));
 
-            return ResponseEntity.ok(new JwtResponse(jwt, "Bearer", userDetails.getUsername(), userDetails.getAuthorities()));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
+        String jwt = jwtProvider.generateAuthenticationToken(authentication);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+
+        return ResponseEntity.ok(new JwtResponse(jwt, "Bearer", userDetails.getUsername(), userDetails.getAuthorities()));
+    }
+
+    private String getContextPath(HttpServletRequest request) {
+        // ne robet
+        return request.getRequestURL().toString().replace(request.getRequestURI(), "");
     }
 }

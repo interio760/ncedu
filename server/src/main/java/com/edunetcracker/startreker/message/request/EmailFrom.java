@@ -1,17 +1,18 @@
-package com.edunetcracker.startreker.forms;
+package com.edunetcracker.startreker.message.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Email;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConfirmationForm {
-    @NotNull
-    private String token;
+public class EmailFrom {
+
+    @Email
+    private String email;
 }

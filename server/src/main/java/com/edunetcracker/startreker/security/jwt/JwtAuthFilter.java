@@ -1,6 +1,8 @@
 package com.edunetcracker.startreker.security.jwt;
 
 import com.edunetcracker.startreker.dao.UserDAO;
+import com.edunetcracker.startreker.service.UserInformationHolderService;
+import com.edunetcracker.startreker.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,7 +22,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private JwtProvider jwtProvider;
 
     @Autowired
-    private UserDAO userDAO;
+    private UserInformationHolderService userInformationHolderService;
+
+    @Autowired
+    private UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException {
@@ -28,16 +33,25 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String jwt = getJWT(httpServletRequest);
 
         if (jwtProvider.validateToken(jwt)) {
-            UserDetails userDetails = userDAO.loadUserByUsername(jwtProvider.retrieveUsername(jwt));
-            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails
-                    .getAuthorities());
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            UserDetails userDetails = userService.
+                    createUserDetails(userInformationHolderService.
+                            convertAsUserInfo(jwtProvider.retrieveSubject(jwt)));
+
+            if (userDetails == null) {
+                throw new RuntimeException("Something went wrong during authorization");
+            }
+
+            if (userDetails.isAccountNonLocked()) {
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails
+                        .getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            }
         }
 
         filterChain.doFilter(httpServletRequest, httpServletResponse);
     }
-
 
     private String getJWT(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
