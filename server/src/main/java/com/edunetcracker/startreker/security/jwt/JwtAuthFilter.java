@@ -1,5 +1,6 @@
 package com.edunetcracker.startreker.security.jwt;
 
+import com.edunetcracker.startreker.dao.UserDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,9 +21,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private JwtProvider jwtProvider;
 
-    @Qualifier("UserDetailsServiceImpl")
     @Autowired
-    private UserDetailsService userDetailsService;
+    private UserDAO userDAO;
 
     @Override
     protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException {
@@ -30,7 +30,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String jwt = getJWT(httpServletRequest);
 
         if (jwtProvider.validateToken(jwt)) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(jwtProvider.retrieveUsername(jwt));
+            UserDetails userDetails = userDAO.loadUserByUsername(jwtProvider.retrieveUsername(jwt));
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails
                     .getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));

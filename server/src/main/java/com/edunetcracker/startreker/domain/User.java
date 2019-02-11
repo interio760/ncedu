@@ -26,16 +26,23 @@ public class User implements UserDetails {
     @PrimaryKey("user_id")
     @EqualsAndHashCode.Include
     private Long userId;
+
     @Attribute("user_name")
     private String userName;
+
     @Attribute("user_password")
     private String userPassword;
 
+    @Attribute("user_email")
+    private String email;
+
+
     private List<Role> userRoles = new ArrayList<>();
 
-    public User(String userName, String userPassword) {
+    public User(String userName, String userPassword, String email) {
         this.userName = userName;
         this.userPassword = userPassword;
+        this.email = email;
     }
 
     @Override

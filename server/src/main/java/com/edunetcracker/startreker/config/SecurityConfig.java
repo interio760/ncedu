@@ -1,5 +1,6 @@
 package com.edunetcracker.startreker.config;
 
+import com.edunetcracker.startreker.dao.UserDAO;
 import com.edunetcracker.startreker.security.jwt.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -27,12 +28,8 @@ import org.springframework.web.filter.CorsFilter;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
-    private final UserDetailsService userDetails;
-
     @Autowired
-    public SecurityConfig(@Qualifier("UserDetailsServiceImpl") UserDetailsService userDetails) {
-        this.userDetails = userDetails;
-    }
+    private UserDAO userDAO;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -59,7 +56,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider auth = new DaoAuthenticationProvider();
-        auth.setUserDetailsService(userDetails); //set the custom user details service
+        auth.setUserDetailsService(userDAO); //set the custom user details service
         auth.setPasswordEncoder(passwordEncoder()); //set the password encoder - bcrypt
         return auth;
     }

@@ -35,9 +35,4 @@ public class MvcConfig implements WebMvcConfigurer {
         registry.setOrder(Ordered.LOWEST_PRECEDENCE);
     }
 
-    @Bean(name="UserDetailsServiceImpl")
-    public UserDetailsService clazzImplA(){
-        return new UserDAO(new RoleDAO());
-    }
-
 }

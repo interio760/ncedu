@@ -15,5 +15,6 @@ public class SignUpForm {
 
     private String username;
     private String password;
+    private String email;
     private Boolean is_carrier;
 }
