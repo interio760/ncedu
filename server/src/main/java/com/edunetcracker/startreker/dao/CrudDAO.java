@@ -71,7 +71,7 @@ public abstract class CrudDAO<T> {
                         createSql,
                         Statement.RETURN_GENERATED_KEYS);
                 int i = 1;
-                for(Object obj : resolveCreateParameters(entity)){
+                for(Object obj : resolveCreateParameters(entity)) {
                     ps.setObject(i++, obj);
                 }
                 return ps;
