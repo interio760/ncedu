@@ -79,7 +79,7 @@ public class UserDAO extends CrudDAO<User> implements UserDetailsService {
         return Optional.of(user);
     }
 
-    private void updateRoles(User user){
+    private void updateRoles(User user) {
         List<Long> dbRoleIds = getJdbcTemplate().queryForList(findAllRolesSql, Long.class, user.getUserId());
         List<Long> userRoleIds = user.getUserRoles()
                 .stream()

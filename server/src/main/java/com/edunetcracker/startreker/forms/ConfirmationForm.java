@@ -5,20 +5,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import javax.validation.constraints.Email;
 import javax.validation.constraints.NotNull;
-import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class SignUpForm extends UserForm{
-
+public class ConfirmationForm {
     @NotNull
-    private Boolean is_carrier;
-
-    @NotNull
-    private String email;
-
+    private String token;
 }
