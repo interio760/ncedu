@@ -1,8 +1,9 @@
 package com.edunetcracker.startreker.security.jwt;
 
-import com.edunetcracker.startreker.dao.UserDAO;
 import com.edunetcracker.startreker.service.UserInformationHolderService;
 import com.edunetcracker.startreker.service.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -18,6 +19,8 @@ import java.io.IOException;
 
 public class JwtAuthFilter extends OncePerRequestFilter {
 
+    private static final Logger logger = LoggerFactory.getLogger(JwtProvider.class);
+
     @Autowired
     private JwtProvider jwtProvider;
 
@@ -28,26 +31,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private UserService userService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest httpServletRequest,
+                                    HttpServletResponse httpServletResponse,
+                                    FilterChain filterChain) throws ServletException, IOException {
 
         String jwt = getJWT(httpServletRequest);
 
         if (jwtProvider.validateToken(jwt)) {
-
-            UserDetails userDetails = userService.
-                    createUserDetails(userInformationHolderService.
-                            convertAsUserInfo(jwtProvider.retrieveSubject(jwt)));
-
-            if (userDetails == null) {
-                throw new RuntimeException("Something went wrong during authorization");
-            }
-
-            if (userDetails.isAccountNonLocked()) {
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails
-                        .getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+            handleToken(httpServletRequest, jwt);
         }
 
         filterChain.doFilter(httpServletRequest, httpServletResponse);
@@ -61,5 +52,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         return null;
+    }
+
+    private void handleToken(HttpServletRequest httpServletRequest, String jwt) {
+        UserDetails userDetails = userService.
+                createUserDetails(userInformationHolderService.
+                        convertAsUserInfo(jwtProvider.retrieveSubject(jwt)));
+
+        createAuthentication(httpServletRequest, userDetails);
+    }
+
+    private void createAuthentication(HttpServletRequest httpServletRequest, UserDetails userDetails) {
+        if (userDetails == null) {
+            logger.error("User send invalid token");
+            return;
+        }
+
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities());
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

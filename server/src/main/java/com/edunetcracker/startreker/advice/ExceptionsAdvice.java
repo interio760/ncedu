@@ -4,6 +4,8 @@ import com.edunetcracker.startreker.controllers.exception.RequestException;
 import com.edunetcracker.startreker.dto.ValidationExceptionDTO;
 import com.edunetcracker.startreker.message.response.RequestExceptionMessage;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -32,6 +34,26 @@ public class ExceptionsAdvice {
     public ResponseEntity<RequestExceptionMessage> handleException(RequestException ex, WebRequest request){
         RequestExceptionMessage exceptionMessage = new RequestExceptionMessage(
                 ex.getErrorCode(),
+                ex.getMessage(),
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+        return ResponseEntity.badRequest().body(exceptionMessage);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<RequestExceptionMessage> handleException(AccessDeniedException ex, WebRequest request){
+        RequestExceptionMessage exceptionMessage = new RequestExceptionMessage(
+                4033,
+                ex.getMessage(),
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+
+        return ResponseEntity.badRequest().body(exceptionMessage);
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<RequestExceptionMessage> handleException(LockedException ex, WebRequest request){
+        RequestExceptionMessage exceptionMessage = new RequestExceptionMessage(
+                23,
                 ex.getMessage(),
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 

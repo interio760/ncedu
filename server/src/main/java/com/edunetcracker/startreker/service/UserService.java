@@ -59,6 +59,10 @@ public class UserService {
     }
 
     public UserDetails createUserDetails(UserInformationHolder userInformationHolder) {
+        if (userInformationHolder == null) {
+            return null;
+        }
+
         return new org.springframework.security.core.userdetails.User(userInformationHolder.getUsername(),
                 userInformationHolder.getPassword(),
                 mapRolesToAuthorities(userInformationHolder.getRoles()));
@@ -77,5 +81,4 @@ public class UserService {
 
         return roles;
     }
-
 }
