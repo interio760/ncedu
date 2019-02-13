@@ -96,8 +96,7 @@ public class AuthController {
 
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        Optional<User> userOptional = userDAO.findByUsername(
-                jwtProvider.retrieveSubject(userDetails.getUsername()));
+        Optional<User> userOptional = userDAO.findByUsername(userDetails.getUsername());
 
         if (!userOptional.isPresent())
             throw new RequestException("No such user!", 2);
