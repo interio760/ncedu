@@ -1,7 +1,9 @@
 package com.edunetcracker.startreker.security.jwt;
 
+import com.edunetcracker.startreker.domain.User;
 import com.edunetcracker.startreker.service.UserInformationHolderService;
 import com.edunetcracker.startreker.service.UserService;
+import com.edunetcracker.startreker.util.JwtUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,34 +37,49 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     HttpServletResponse httpServletResponse,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        String jwt = getJWT(httpServletRequest);
+        String accessToken = JwtUtils.getAccessToken(httpServletRequest);
 
-        if (jwtProvider.validateToken(jwt)) {
-            handleToken(httpServletRequest, jwt);
+        if (jwtProvider.validateToken(accessToken, httpServletRequest) && isAccessToken(accessToken)) {
+            handleToken(accessToken, httpServletRequest);
+
+        } else if (httpServletRequest.getAttribute("isExpired") != null &&
+                (Boolean) httpServletRequest.getAttribute("isExpired")){
+
+            handleExpiredToken(httpServletRequest, httpServletResponse);
         }
 
         filterChain.doFilter(httpServletRequest, httpServletResponse);
     }
 
-    private String getJWT(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
+    private void handleExpiredToken(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
+        String newAccessToken = createNewAccessTokenIfRefreshTokenIsValid(httpServletRequest);
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.replace("Bearer ", "");
-        }
+        if (newAccessToken == null) return;
 
-        return null;
+        httpServletResponse.setHeader("New-Access-Token", newAccessToken);
+
+        handleToken(newAccessToken, httpServletRequest);
     }
 
-    private void handleToken(HttpServletRequest httpServletRequest, String jwt) {
+    private String createNewAccessTokenIfRefreshTokenIsValid(HttpServletRequest request) {
+        String refreshToken =  JwtUtils.getRefreshToken(request);
+        if (isInvalidRefreshTokenSignature(refreshToken)) return null;
+
+        User user = userService.findByName(jwtProvider.retrieveSubject(refreshToken));
+        if (isNotMatchedWithUsersRefreshToken(refreshToken, user)) return null;
+
+        return jwtProvider.generateAccessToken(user);
+    }
+
+    private void handleToken(String accessToken, HttpServletRequest request) {
         UserDetails userDetails = userService.
                 createUserDetails(userInformationHolderService.
-                        convertAsUserInfo(jwtProvider.retrieveSubject(jwt)));
+                        convertAsUserInfo(jwtProvider.retrieveSubject(accessToken)));
 
-        createAuthentication(httpServletRequest, userDetails);
+        createAuthentication(userDetails, request);
     }
 
-    private void createAuthentication(HttpServletRequest httpServletRequest, UserDetails userDetails) {
+    private void createAuthentication(UserDetails userDetails, HttpServletRequest request) {
         if (userDetails == null) {
             logger.error("User send invalid token");
             return;
@@ -72,7 +89,19 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 userDetails,
                 null,
                 userDetails.getAuthorities());
-        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(httpServletRequest));
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    private boolean isAccessToken(String token) {
+        return userInformationHolderService.convertAsUserInfo(jwtProvider.retrieveSubject(token)) != null;
+    }
+
+    private boolean isInvalidRefreshTokenSignature(String refreshToken) {
+        return !jwtProvider.validateToken(refreshToken) || isAccessToken(refreshToken);
+    }
+
+    private boolean isNotMatchedWithUsersRefreshToken(String refreshToken, User user) {
+        return user == null || !refreshToken.equals(user.getUserRefreshToken());
     }
 }

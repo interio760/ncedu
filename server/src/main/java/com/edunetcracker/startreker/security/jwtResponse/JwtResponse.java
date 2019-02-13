@@ -1,5 +1,6 @@
 package com.edunetcracker.startreker.security.jwtResponse;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +12,10 @@ import java.util.Collection;
 @Setter
 @AllArgsConstructor
 public class JwtResponse {
-    private String token;
+    @JsonProperty("access_token")
+    private String accessToken;
+    @JsonProperty("refresh_token")
+    private String refreshToken;
     private String type;
     private String username;
     private Collection<? extends GrantedAuthority> authorities;

@@ -136,11 +136,17 @@ public class AuthController {
                         signInForm.getUsername(),
                         signInForm.getPassword()));
 
-        String jwt = jwtProvider.generateAuthenticationToken(authentication);
+        String accessToken = jwtProvider.generateAccessToken((UserDetails) authentication.getPrincipal());
+        String refreshToken = jwtProvider.generateRefreshToken(signInForm.getUsername());
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        return ResponseEntity.ok(new JwtResponse(jwt, "Bearer", userDetails.getUsername(), userDetails.getAuthorities()));
+        User user = userService.findByName(signInForm.getUsername());
+        user.setUserRefreshToken(refreshToken);
+        userDAO.save(user);
+
+        return ResponseEntity.ok(new JwtResponse(accessToken, refreshToken, "Bearer", userDetails.getUsername(), userDetails.getAuthorities()));
     }
 
     private String getContextPath(HttpServletRequest request) {

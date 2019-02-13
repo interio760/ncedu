@@ -3,6 +3,7 @@ package com.edunetcracker.startreker.security.jwt;
 import com.edunetcracker.startreker.service.UserInformationHolderService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.Date;
 
 @Component
@@ -37,12 +39,18 @@ public class JwtProvider {
     @Value("${jwt.jwtRefreshExpiration}")
     private int jwtRefreshExpiration;
 
-    public String generateAuthenticationToken(Authentication authentication) {
-        return generateTokenFromAuthentication(authentication, jwtAuthenticationExpiration);
+    public String generateAccessToken(UserDetails userPrincipal) {
+        String userInformationHolder = userInformationHolderService.convertAsString(userPrincipal);
+
+        if (userInformationHolder.equals("")) {
+            throw new RuntimeException("Something went wrong");
+        }
+
+        return generateToken(userInformationHolder, jwtAuthenticationExpiration);
     }
 
-    public String generateRefreshToken(Authentication authentication) {
-        return generateTokenFromAuthentication(authentication, jwtRefreshExpiration);
+    public String generateRefreshToken(String username) {
+        return generateToken(username, jwtMailRegistrationExpiration);
     }
 
     public String generateMailRegistrationToken(String username) {
@@ -57,26 +65,25 @@ public class JwtProvider {
     }
 
     public boolean validateToken(String jwt) {
+        return validateInputToken(jwt, null);
+    }
+
+    public boolean validateToken(String jwt, HttpServletRequest request) {
+        return validateInputToken(jwt, request);
+    }
+
+    private boolean validateInputToken(String jwt, HttpServletRequest request) {
         try {
             Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(jwt);
             return true;
+        } catch (ExpiredJwtException e) {
+            logger.error("Expired JWT token -> Message: {}", e.getMessage());
+            if (request != null) request.setAttribute("isExpired", true);
         } catch (Exception e) {
-            logger.error("Invalid JWT -> Message: {} " + e);
+            logger.error("Invalid JWT -> Message: {} " + e.getMessage());
         }
 
         return false;
-    }
-
-    private String generateTokenFromAuthentication(Authentication authentication, int expiration) {
-        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
-
-        String userInformationHolder = userInformationHolderService.convertAsString(userPrincipal);
-
-        if (userInformationHolder.equals("")) {
-            throw new RuntimeException("Something went wrong");
-        }
-
-        return generateToken(userInformationHolder, expiration);
     }
 
     private String generateToken(String subject, int expiration) {

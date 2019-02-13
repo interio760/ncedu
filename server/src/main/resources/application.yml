@@ -5,17 +5,17 @@ spring:
     active: prod
 
 server:
-  port: 80
+  port: 8080
 
 postgres:
   servername: localhost
   port: 5432
-  database: <>
-  username: <>
-  password: <>
+  database: NCProject
+  username: vitya
+  password: qwe123asd
 
 mail:
   host: smtp.gmail.com
   port: 587
-  username: <>
-  password: <>
+  username: ivan.viktor.nc@gmail.com
+  password: D$h%0WHpdx81
