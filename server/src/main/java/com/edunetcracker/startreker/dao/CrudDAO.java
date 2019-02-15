@@ -36,7 +36,6 @@ public abstract class CrudDAO<T> {
 
     @Autowired
     public CrudDAO() {
-        // Hack to get generic type class
         Type t = getClass().getGenericSuperclass();
         ParameterizedType pt = (ParameterizedType) t;
         this.clazz = (Class<T>) pt.getActualTypeArguments()[0];
@@ -53,7 +52,7 @@ public abstract class CrudDAO<T> {
     }
 
     public Optional<T> find(Number id) {
-        try{
+        try {
             T entity = jdbcTemplate.queryForObject(
                     selectSql,
                     new Object[]{id},
@@ -78,7 +77,7 @@ public abstract class CrudDAO<T> {
             };
             KeyHolder holder = new GeneratedKeyHolder();
             jdbcTemplate.update(psc, holder);
-            for(Field field : primaryMapper.keySet()){
+            for(Field field : primaryMapper.keySet()) {
                 try {
                     field.set(entity, holder.getKeys().get(
                             field.getAnnotation(PrimaryKey.class)

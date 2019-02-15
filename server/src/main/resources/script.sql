@@ -21,6 +21,18 @@ CREATE TABLE assigned_role(
   role_id BIGSERIAL REFERENCES role (role_id)
 );
 
+CREATE TABLE planet(
+                            planet_id BIGSERIAL PRIMARY KEY,
+                            planet_name VARCHAR(64) not null
+);
+
+CREATE TABLE spaceport(
+                     spaceport_id BIGSERIAL PRIMARY KEY,
+                     spaceport_name VARCHAR(64) not null,
+                     creation_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                     role_id BIGSERIAL REFERENCES planet (planet_id)
+);
+
 INSERT INTO role (role_id, role_name) VALUES (1, 'ROLE_ADMIN');
 INSERT INTO role (role_id, role_name) VALUES (2, 'ROLE_USER');
 INSERT INTO role (role_id, role_name) VALUES (3, 'ROLE_CARRIER');

@@ -47,7 +47,7 @@ public class UserDAO extends CrudDAO<User> implements UserDetailsService {
     }
 
     public Optional<User> findByUsername(String userName) {
-        try{
+        try {
             User user = getJdbcTemplate().queryForObject(
                     findByUsernameSql,
                     new Object[]{userName},
@@ -59,7 +59,7 @@ public class UserDAO extends CrudDAO<User> implements UserDetailsService {
     }
 
     public Optional<User> findByEmail(String email) {
-        try{
+        try {
             User user = getJdbcTemplate().queryForObject(
                     findByEmailSql,
                     new Object[]{email},

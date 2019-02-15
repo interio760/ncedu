@@ -56,9 +56,9 @@ public class AuthController {
             throw new RequestException("Username already exist", ERROR_USER_ALREADY_EXISTS);
         }
 
-        if (userService.ifEmailExist(signUpForm.getEmail())) {
-            throw new RequestException("Email already exist", ERROR_MAIL_ALREADY_EXISTS);
-        }
+//        if (userService.ifEmailExist(signUpForm.getEmail())) {
+//            throw new RequestException("Email already exist", ERROR_MAIL_ALREADY_EXISTS);
+//        }
 
         User user = userService.createUser(signUpForm, false);
 
@@ -109,7 +109,7 @@ public class AuthController {
         return "OK";
     }
 
-    @GetMapping(path = "api/auth/confirmPassword")
+    @GetMapping(path = "api/auth/confirm-password")
     public ResponseEntity<String> confirmPassword(@Valid @RequestParam("token") String token) {
 
         if (!jwtProvider.validateToken(token))
