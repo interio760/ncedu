@@ -1,8 +1,8 @@
 package com.edunetcracker.startreker.dao;
 
-import com.edunetcracker.startreker.domain.Trip;
+import com.edunetcracker.startreker.domain.Vehicle;
 import org.springframework.stereotype.Component;
 
 @Component
-public class TripDAO extends CrudDAO<Trip> {
+public class VehicleDAO extends CrudDAO<Vehicle> {
 }
